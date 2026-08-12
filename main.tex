@@ -1,0 +1,362 @@
+\documentclass[11pt,a4paper]{article}
+
+% ============================ PAQUETES ================================
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{tikz}
+\usetikzlibrary{shapes.multipart,shapes.geometric,arrows.meta,positioning,fit,calc,backgrounds,shadows}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=black}
+
+\title{}
+\date{}
+
+\begin{document}
+
+% =====================================================================
+% CARÁTULA
+% =====================================================================
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+{\large UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO\par}
+{\large Facultad de Ciencias de la Ingeniería \par}
+{\large Carrera de Ingeniería de Software\par}
+\vspace{1.5cm}
+{\Large\bfseries PRUEBA PRÁCTICA --- UNIDAD IV\par}
+\vspace{0.3cm}
+{\large Validación, Gestión, Herramientas y Estándares de Requisitos\par}
+\vspace{0.3cm}
+{\large Asignatura: Ingeniería de Requisitos (ISR-401)\par}
+{\large Docente: Ing. Gleiston Guerrero, Mg.\par}
+\vspace{1.5cm}
+
+\begin{tabular}{ll}
+\textbf{Estudiante:} & Barrionuevo Carlos \\[4pt]
+\textbf{Fecha:} & 11/08/2026 \\[4pt]
+\textbf{Modalidad:} & Individual, en clase \\[4pt]
+\textbf{Caso:} & Sistema de Gestión de Pedidos \\
+\end{tabular}
+
+\vspace{1.5cm}
+\textbf{URL del repositorio:} \url{https://github.com/cdxniel/Evaluaci-n-Pr-ctica-de-la-Unidad-IV}
+
+\vspace{1.5cm}
+\textbf{Captura de la evaluación (intento y calificación, SGA):}\\[6pt]
+\includegraphics[width=11cm]{captura_evaluacion.png}
+
+\vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Modelo de datos --- Diagrama de clases UML}
+% =====================================================================
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  class/.style={rectangle split, rectangle split parts=3, draw=black, thick,
+                rectangle split part align={center,left,left},
+                text width=4.2cm, font=\small},
+  every edge/.style={draw, thick},
+  labeltxt/.style={font=\scriptsize, fill=white, inner sep=1pt}
+]
+
+\node[class] (cliente) at (0,0)
+  {\textbf{Cliente}
+   \nodepart{two} \underline{idCliente: int}\\ cedulaRuc: string\\ nombre: string\\ correo: string
+   \nodepart{three} +registrarPedido(): void};
+
+\node[class] (pedido) at (7,0)
+  {\textbf{Pedido}
+   \nodepart{two} \underline{idPedido: int}\\ fecha: Date\\ total: decimal
+   \nodepart{three} +calcularTotal(): decimal\\ +confirmar(): void};
+
+\node[class] (linea) at (7,-6)
+  {\textbf{LineaPedido}
+   \nodepart{two} \underline{idLinea: int}\\ cantidad: int
+   \nodepart{three} +calcularSubtotal(): decimal};
+
+\node[class] (producto) at (0,-6)
+  {\textbf{Producto}
+   \nodepart{two} \underline{idProducto: int}\\ descripcion: string\\ precio: decimal\\ stock: int
+   \nodepart{three} +verificarDisponibilidad(cant: int): boolean};
+
+\draw (cliente) -- (pedido)
+  node[labeltxt, pos=0.15] {1}
+  node[labeltxt, pos=0.85] {0..*}
+  node[labeltxt, pos=0.5, above] {tiene};
+
+\draw (pedido) -- (linea)
+  node[labeltxt, pos=0.15] {1}
+  node[labeltxt, pos=0.85] {1..*}
+  node[labeltxt, pos=0.5, right] {contiene};
+
+\draw (linea) -- (producto)
+  node[labeltxt, pos=0.15] {*}
+  node[labeltxt, pos=0.85] {1}
+  node[labeltxt, pos=0.5, below] {referencia};
+
+\end{tikzpicture}
+\caption{Diagrama de clases UML del dominio Sistema de Gestión de Pedidos.}
+\end{figure}
+
+Los identificadores de cada clase (\texttt{idCliente}, \texttt{idPedido},
+\texttt{idLinea}, \texttt{idProducto}) se muestran subrayados. Las
+multiplicidades reflejan las reglas del caso: un cliente puede tener cero o
+más pedidos (\emph{tiene}), un pedido contiene una o más líneas
+(\emph{contiene}) y cada línea referencia exactamente un producto
+(\emph{referencia}).
+
+\newpage
+% =====================================================================
+\section{Modelo funcional --- Diagrama de actividades UML}
+% =====================================================================
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  act/.style={rectangle, rounded corners, draw=black, thick, minimum width=3.2cm,
+              minimum height=0.9cm, align=center, font=\small, fill=white},
+  dec/.style={diamond, draw=black, thick, aspect=2, align=center, font=\small, fill=white,
+              inner sep=2pt},
+  ini/.style={circle, draw=black, fill=black, minimum size=0.35cm},
+  fin/.style={circle, draw=black, fill=black, minimum size=0.35cm},
+  finring/.style={circle, draw=black, thick, minimum size=0.55cm},
+  every edge/.style={draw, thick, -{Latex[length=2mm]}}
+]
+
+\draw[thick] (-3.2,1) rectangle (3.2,-11);
+\draw[thick] (-3.2,1) -- (3.2,1);
+\draw[thick] (0,1) -- (0,-11);
+\node[font=\bfseries] at (-1.6,0.6) {Cliente};
+\node[font=\bfseries] at (1.6,0.6) {Sistema};
+
+\node[ini] (start) at (-1.6,0) {};
+\node[act] (ingresar) at (-1.6,-1.6) {Ingresar pedido};
+
+\node[act] (verificar) at (1.6,-3.4) {Verificar stock};
+\node[dec] (hay) at (1.6,-5.2) {\textquestiondown Hay\\ stock?};
+\node[act] (notificar) at (2.9,-7.4) {Notificar faltante};
+\node[act] (confirmar) at (-1.6,-7.4) {Confirmar pedido};
+\node[finring] (mergefin) at (1.6,-9.6) {};
+\node[fin] at (1.6,-9.6) {};
+
+\draw[thick,-{Latex[length=2mm]}] (start) -- (ingresar);
+\draw[thick,-{Latex[length=2mm]}] (ingresar.east) -| (verificar.north);
+\draw[thick,-{Latex[length=2mm]}] (verificar) -- (hay);
+\draw[thick,-{Latex[length=2mm]}] (hay) -- node[right,font=\scriptsize] {No} (notificar);
+\draw[thick,-{Latex[length=2mm]}] (hay.west) -| node[above,font=\scriptsize,pos=0.25] {S\'i} (confirmar.north);
+\draw[thick,-{Latex[length=2mm]}] (confirmar.south) |- (mergefin.west);
+\draw[thick,-{Latex[length=2mm]}] (notificar.south) |- (mergefin.east);
+
+\end{tikzpicture}
+\caption{Diagrama de actividades UML del proceso ``Registrar pedido'' con carriles Cliente/Sistema.}
+\end{figure}
+
+\newpage
+% =====================================================================
+\section{Modelo de comportamiento --- Máquina de estados UML}
+% =====================================================================
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+  st/.style={rectangle, rounded corners=6pt, draw=black, thick, minimum width=2.6cm,
+             minimum height=0.9cm, align=center, font=\small, fill=white},
+  super/.style={rectangle, rounded corners=8pt, draw=black, thick, dashed, inner sep=10pt},
+  ini/.style={circle, draw=black, fill=black, minimum size=0.3cm},
+  fin/.style={circle, draw=black, fill=black, minimum size=0.3cm},
+  finring/.style={circle, draw=black, thick, minimum size=0.5cm},
+  every edge/.style={draw, thick, -{Latex[length=2mm]}},
+  lbl/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt}
+]
+
+\node[ini] (i0) at (0,0) {};
+\node[st] (reg) at (2.6,0) {Registrado};
+\node[st] (conf) at (6.5,0) {Confirmado};
+\node[st] (desp) at (10.4,0) {Despachado};
+\node[st] (ent) at (14.3,0) {Entregado};
+\node[finring] (fring) at (16.6,0) {};
+\node[fin] at (16.6,0) {};
+
+\node[st] (canc) at (8.5,-4) {Cancelado};
+\node[finring] (fring2) at (11.2,-4) {};
+\node[fin] at (11.2,-4) {};
+
+\node[super, fit={(reg)(conf)(desp)}, label={[font=\bfseries\scriptsize]above:Anulable}] (super) {};
+
+\draw (i0) edge (reg);
+\draw (reg) edge node[lbl,above] {verificar stock\\ {[hay stock]}} (conf);
+\draw (conf) edge node[lbl,above] {despachar} (desp);
+\draw (desp) edge node[lbl,above] {entregar} (ent);
+\draw (ent) edge (fring);
+
+\draw[thick,-{Latex[length=2mm]}] (super.south) -- node[lbl,right] {anular\\ {[pedido no entregado]}} (canc.north);
+\draw (canc) edge (fring2);
+
+\end{tikzpicture}
+\caption{Máquina de estados UML del ciclo de vida de un Pedido, con superestado \emph{Anulable}.}
+\end{figure}
+
+\newpage
+% =====================================================================
+\section{Consistencia entre las tres perspectivas}
+% =====================================================================
+
+Tabla de verificación cruzada entre el evento (máquina de estados, sección 3),
+la función/acción que lo realiza (diagrama de actividades, sección 2) y la
+entidad o atributo que modifica (diagrama de clases, sección 1).
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Evento} & \textbf{Función/Acción} & \textbf{Entidad.Atributo} \\
+\midrule
+Confirmar & Confirmar pedido & Pedido.Estado \\
+Despachar & Despachar pedido & Pedido.Estado \\
+Entregar  & Entregar pedido  & Pedido.Estado \\
+Anular    & Anular pedido    & Pedido.Estado \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Inconsistencia detectada.} Los cuatro eventos modifican el mismo
+atributo (\texttt{Pedido.Estado}), pero el diagrama de clases original no
+contemplaba explícitamente dicho atributo como enumeración de estados
+controlada, y el diagrama de actividades no representaba una acción
+diferenciada para \emph{anular}, ya que quedaba implícita dentro del flujo de
+despacho.
+
+\paragraph{Corrección aplicada.} Se añadió a la clase \texttt{Pedido} el
+atributo \texttt{estado: EstadoPedido} (tipo enumerado con los valores
+\emph{Registrado, Confirmado, Despachado, Entregado, Cancelado}), consistente
+con los estados de la máquina de estados (sección 3).
+
+% =====================================================================
+\section{Especificación de requisitos con esquema de atributos}
+% =====================================================================
+
+\begin{itemize}
+    \item \textbf{RF-01:} El sistema debe permitir registrar pedidos.
+    \item \textbf{RF-02:} El sistema debe verificar el stock del producto antes de confirmar un pedido.
+    \item \textbf{RNF-01:} El sistema debe registrar un pedido en menos de 3 segundos
+    (característica ISO/IEC 25010:2023: \emph{Eficiencia de desempeño}; métrica: tiempo de respuesta;
+    umbral: $< 3\,\text{s}$).
+    \item \textbf{RNF-02:} El sistema debe proteger los datos personales del cliente mediante cifrado
+    continuo AES-256 (característica ISO/IEC 25010:2023: \emph{Seguridad}; métrica: algoritmo y
+    cobertura de cifrado; umbral: cifrado AES-256 aplicado al 100\% de los datos personales en reposo
+    y en tránsito).
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{@{}lllllll@{}}
+\toprule
+\textbf{ID} & \textbf{Prioridad} & \textbf{Estado} & \textbf{Fuente} & \textbf{Estabilidad} & \textbf{Versión} & \textbf{Verificación} \\
+\midrule
+RF-01  & Alta  & Propuesto & Caso de uso & Alta  & 1.0 & Prueba \\
+RF-02  & Alta  & Propuesto & Caso de uso & Alta  & 1.0 & Prueba \\
+RNF-01 & Media & Propuesto & Caso de uso & Media & 1.0 & Prueba de carga \\
+RNF-02 & Media & Propuesto & Caso de uso & Media & 1.0 & Inspección \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\section{Priorización MoSCoW}
+% =====================================================================
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{ID} & \textbf{Categoría} & \textbf{Justificación} \\
+\midrule
+RF-01  & Must have   & Constituye el núcleo funcional del sistema; sin registrar pedidos no hay producto viable. \\
+RF-02  & Must have   & Garantiza la integridad del inventario y evita ventas sin stock disponible. \\
+RNF-01 & Should have & Mejora la experiencia del usuario, pero el sistema puede operar sin cumplir el umbral estricto. \\
+RNF-02 & Could have  & Deseable desde el inicio, pero puede incorporarse en una iteración posterior sin bloquear el MVP. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\section{Validación por inspección (checklist ISO/IEC/IEEE 29148)}
+% =====================================================================
+
+\paragraph{Propiedades evaluadas.} No ambiguo, completo, singular, verificable, factible.
+
+\paragraph{Defecto detectado (identificación, sin corregir).} El requisito
+\textbf{RNF-02} no especifica algoritmo ni unidad de medida verificable
+(no cumple la propiedad de \emph{verificabilidad}).
+
+\paragraph{Retrabajo (segundo paso, con corrección).} Se reformula el
+requisito así: \emph{``Los datos personales deben cifrarse de manera continua
+mediante AES-256''}, quedando ahora acotado a un algoritmo concreto y, por
+tanto, verificable mediante inspección de configuración/código.
+
+% =====================================================================
+\section{Pruebas de aceptación trazadas}
+% =====================================================================
+
+\begin{center}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{ID} & \textbf{Tipo} & \textbf{Entradas} & \textbf{Criterio de éxito} & \textbf{Traza} \\
+\midrule
+PA-01 & Funcional     & Pedido con 2 líneas válidas      & Total calculado correctamente        & RF-01 \\
+PA-02 & Funcional     & Producto sin stock                & Sistema notifica el faltante          & RF-02 \\
+PA-03 & No funcional  & 100 pedidos simultáneos           & Casos registrados $> 95\%$ en $<3$ s  & RNF-01 \\
+PA-04 & No funcional  & Intento de acceso directo a datos & Datos ilegibles (cifrados)            & RNF-02 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\section{Matriz de trazabilidad}
+% =====================================================================
+
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Requisito} & \textbf{Fuente (traza atrás)} & \textbf{Modelo asociado} & \textbf{Prueba (traza adelante)} \\
+\midrule
+RF-01  & Caso de negocio ``Registrar pedido'' & Sec. 1: Pedido / LíneaPedido            & PA-01 \\
+RF-02  & Caso de negocio                       & Sec. 1: Producto.stock, Sec. 2: verificación de stock & PA-02 \\
+RNF-01 & Caso de negocio                       & Sec. 2: Flujo ``Registrar pedido'' & PA-03 \\
+RNF-02 & Caso de negocio                       & Sec. 1: Cliente & PA-04 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Dependencia horizontal.} RNF-01 depende de RF-01, ya que el
+tiempo de registro (RNF-01) solo puede medirse sobre la operación de
+registrar pedidos definida por RF-01.
+
+\paragraph{Requisito huérfano.} Ninguno: los cuatro requisitos (RF-01, RF-02,
+RNF-01, RNF-02) cuentan con modelo asociado y prueba de aceptación
+trazada (PA-01 a PA-04).
+
+% =====================================================================
+\section{Gestión del cambio y línea base}
+% =====================================================================
+
+\begin{description}
+    \item[Solicitud de cambio:] ``Agregar notificación al cliente para confirmar el pedido, indicando lugar y hora de entrega.''
+    \item[Análisis de impacto:] Afecta al requisito RF-01, al diagrama de clases (posible nuevo atributo/método de notificación) y a la prueba de aceptación PA-01.
+    \item[Decisión del CCB:] Aprobada, con prioridad \emph{Should have}.
+    \item[Nueva versión:] RF-01 pasa de v1.0 a v1.1.
+    \item[Línea base declarada:] Se congela la siguiente configuración: ERS v1.0, modelos de clases/actividades/estados v1.0, matriz de trazabilidad v1.0 y pruebas de aceptación v1.0.
+\end{description}
+
+\end{document}
